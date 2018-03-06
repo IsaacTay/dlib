@@ -376,7 +376,7 @@ namespace dlib
 
         explicit global_function_search(
             const function_spec& function
-        ); 
+        );
         /*!
             ensures
                 - #num_functions() == 1

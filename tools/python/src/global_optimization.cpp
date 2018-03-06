@@ -178,6 +178,64 @@ py::tuple py_find_min_global2 (
     return py::make_tuple(mat_to_list(result.x),result.y);
 }
 
+class py_function_evaluation_request
+{
+    function_evaluation_request fer;
+public:    
+    py_function_evaluation_request(function_evaluation_request& request)
+    :fer(std::move(request)) {}
+
+    py::list x()
+    {
+	return mat_to_list(fer.x());
+    }
+
+    void set(double y)
+    {
+	fer.set(y);
+    }	
+};
+
+class py_global_function_search{
+    global_function_search gfs;
+public:
+    py_global_function_search (
+	py::list bound1,
+	py::list bound2,
+	py::list is_integer
+    )
+    :gfs(global_function_search(function_spec(list_to_mat(bound1), list_to_mat(bound2), list_to_bool_vector(is_integer)))) {}
+
+    py_function_evaluation_request get_next_x ()
+    {
+	function_evaluation_request fer = gfs.get_next_x();
+	return py_function_evaluation_request(fer);
+    }
+
+    py::tuple get_best_function_eval ()
+    {
+        matrix<double,0,1> tmp_x;
+        double tmp_y;
+        size_t function_idx;
+        gfs.get_best_function_eval(tmp_x, tmp_y, function_idx);
+        return py::make_tuple(mat_to_list(tmp_x), tmp_y);
+    }
+};
+
+/*
+global_function_search create_global_function_search(
+    py::list bound1,
+    py::list bound2,
+    py::list is_integer
+)
+{
+    DLIB_CASSERT(len(bound1) == len(bound2));
+    DLIB_CASSERT(len(bound1) == len(is_integer));
+    
+    return NULL;
+}
+*/
+
 // ----------------------------------------------------------------------------------------
 
 void bind_global_optimization(py::module& m)
@@ -309,5 +367,18 @@ ensures \n\
     );
     }
 
+    {
+    py::class_<py_global_function_search>(m, "global_function_search")
+	.def(py::init<py::list, py::list, py::list>())
+	.def("get_next_x", &py_global_function_search::get_next_x)
+	.def("get_best_function_eval", &py_global_function_search::get_best_function_eval);
+    }
+
+    {
+    py::class_<py_function_evaluation_request>(m, "function_evaluation_request")
+	.def(py::init<function_evaluation_request &>(), py::keep_alive<1, 2>())
+	.def("x", &py_function_evaluation_request::x)
+	.def("set", &py_function_evaluation_request::set);
+    }
 }
 
